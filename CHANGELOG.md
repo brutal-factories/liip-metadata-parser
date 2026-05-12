@@ -2,6 +2,11 @@
 
 # Version 2.x
 
+# 2.2.1
+
+* `SnakeCasePropertyNamingStrategy` now allows grouping uppercase letters (i.e. acronyms/abbreviations) instead of
+  inserting a separator between each letter.
+
 # 2.2.0
 
 * Maintenance of this library has been taken over by rebuy. The package has been  renamed from  `liip/metadata-parser` 
