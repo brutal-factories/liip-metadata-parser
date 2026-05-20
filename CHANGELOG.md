@@ -2,7 +2,7 @@
 
 # Version 2.x
 
-# 2.3.0 (unreleased)
+# 2.3.0
 
 * Drop support for PHP 8.1
 * Add support for psalm/phpstan types in docblocks (e.g. `list<string>` or `array<string, int>`)
