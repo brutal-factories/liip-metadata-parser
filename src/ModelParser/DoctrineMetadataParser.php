@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Liip\MetadataParser\ModelParser;
 
+use Doctrine\Common\Collections\Collection;
 use Liip\MetadataParser\Metadata\PropertyTypeClass;
 use Liip\MetadataParser\Metadata\PropertyTypeUnknown;
 use Liip\MetadataParser\ModelParser\NamingStrategy\PropertyNamingStrategyInterface;
@@ -51,10 +52,9 @@ class DoctrineMetadataParser implements ModelParserInterface
 
     public function __construct(
         private \Doctrine\Persistence\ManagerRegistry $registry,
-        private JMSTypeParser $typeParser = new JMSTypeParser,
+        private JMSTypeParser $typeParser = new JMSTypeParser(),
         protected array $fieldMapping = self::DEFAULT_FIELD_TYPE_MAP,
-    )
-    {
+    ) {
     }
 
     public function withFieldMapping(array $fieldMapping): self
@@ -77,8 +77,9 @@ class DoctrineMetadataParser implements ModelParserInterface
                 $propertyType = $variation->getType();
                 $propertyName = $variation->getName();
 
-                if (!($propertyType instanceof PropertyTypeUnknown
-                    || ($propertyType instanceof PropertyTypeClass && is_a($propertyType->getClassName(), \Doctrine\Common\Collections\Collection::class, true))
+                if (!(
+                    $propertyType instanceof PropertyTypeUnknown
+                    || ($propertyType instanceof PropertyTypeClass && is_a($propertyType->getClassName(), Collection::class, true))
                 )) {
                     continue;
                 }
@@ -89,8 +90,7 @@ class DoctrineMetadataParser implements ModelParserInterface
                 ) {
                     $reflectionProperty = $reflectionClass->getProperty($propertyName);
                     $variation->setType($this->typeParser->parse($normalized, $reflectionProperty));
-
-                } else if ($doctrineMetadata->hasAssociation($propertyName)) {
+                } elseif ($doctrineMetadata->hasAssociation($propertyName)) {
                     $otherTypename = $doctrineMetadata->getAssociationTargetClass($propertyName);
                     $otherMetadata = $this->tryGetDoctrineClassMetadata($otherTypename);
 
@@ -98,20 +98,21 @@ class DoctrineMetadataParser implements ModelParserInterface
                         continue;
                     }
 
-                    //todo: JMS's DoctrineTypeDriver seems to avoid ODM associations to entity super classes. I'm not too sure whether this affects us too
+                    // todo: JMS's DoctrineTypeDriver seems to avoid ODM associations to entity super classes. I'm not too sure whether this affects us too
 
                     if (!$doctrineMetadata->isSingleValuedAssociation($propertyName)) {
-                        $otherTypename = sprintf('ArrayCollection<%s>', $otherTypename);
+                        $otherTypename = \sprintf('ArrayCollection<%s>', $otherTypename);
 
-                        if ($doctrineMetadata instanceof \Doctrine\ORM\Mapping\ClassMetadataInfo) {
+                        if (class_exists('Doctrine\ORM\Mapping\ClassMetadataInfo')
+                            && ($doctrineMetadata instanceof \Doctrine\ORM\Mapping\ClassMetadataInfo)) {
                             $associationMapping = $doctrineMetadata->associationMappings[$propertyName];
 
-                            if (array_key_exists('indexBy', $associationMapping)
+                            if (\array_key_exists('indexBy', $associationMapping)
                                 && $associationMapping['indexBy']
                                 && $otherMetadata->hasField($associationMapping['indexBy'])
                             ) {
                                 $typeOfIndexByField = $otherMetadata->getTypeOfField($associationMapping['indexBy']);
-                                $otherTypename = sprintf('ArrayCollection<%s, %s>', $this->normalizeFieldType($typeOfIndexByField), $otherTypename);
+                                $otherTypename = \sprintf('ArrayCollection<%s, %s>', $this->normalizeFieldType($typeOfIndexByField), $otherTypename);
                             }
                         }
                     }
@@ -130,6 +131,7 @@ class DoctrineMetadataParser implements ModelParserInterface
         if (!$manager || $manager->getMetadataFactory()->isTransient($className)) {
             return null;
         }
+
         return $manager->getClassMetadata($className);
     }
 
