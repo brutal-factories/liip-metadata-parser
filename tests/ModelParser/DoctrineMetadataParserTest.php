@@ -19,6 +19,7 @@ use Liip\MetadataParser\ModelParser\RawMetadata\RawClassMetadata;
 use Liip\MetadataParser\ModelParser\ReflectionParser;
 use PHPUnit\Framework\TestCase;
 use Tests\Liip\MetadataParser\ModelParser\Model\Course;
+use Tests\Liip\MetadataParser\ModelParser\Model\EmptyModel;
 use Tests\Liip\MetadataParser\ModelParser\Model\Student;
 
 class DoctrineMetadataParserTest extends TestCase
@@ -42,8 +43,7 @@ class DoctrineMetadataParserTest extends TestCase
 
     public function testEmpty(): void
     {
-        $c = new class {
-        };
+        $c = new EmptyModel();
 
         $classMetadata = new RawClassMetadata(\get_class($c));
         $this->parser->parse($classMetadata, new SnakeCasePropertyNamingStrategy());
