@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Liip\MetadataParser\ModelParser;
 
 use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping\ClassMetadataInfo;
+use Doctrine\Persistence\Mapping\ClassMetadata;
 use Liip\MetadataParser\Metadata\PropertyTypeClass;
 use Liip\MetadataParser\Metadata\PropertyTypeUnknown;
 use Liip\MetadataParser\ModelParser\NamingStrategy\PropertyNamingStrategyInterface;
@@ -103,14 +105,11 @@ class DoctrineMetadataParser implements ModelParserInterface
                     if (!$doctrineMetadata->isSingleValuedAssociation($propertyName)) {
                         $otherTypename = \sprintf('ArrayCollection<%s>', $otherTypename);
 
-                        if (class_exists('Doctrine\ORM\Mapping\ClassMetadataInfo')
-                            && ($doctrineMetadata instanceof \Doctrine\ORM\Mapping\ClassMetadataInfo)) {
+                        if ($doctrineMetadata instanceof ClassMetadataInfo) {
                             $associationMapping = $doctrineMetadata->associationMappings[$propertyName];
+                            $indexBy = $associationMapping['indexBy'] ?? null;
 
-                            if (\array_key_exists('indexBy', $associationMapping)
-                                && $associationMapping['indexBy']
-                                && $otherMetadata->hasField($associationMapping['indexBy'])
-                            ) {
+                            if (null !== $indexBy && $otherMetadata->hasField($associationMapping['indexBy'])) {
                                 $typeOfIndexByField = $otherMetadata->getTypeOfField($associationMapping['indexBy']);
                                 $otherTypename = \sprintf('ArrayCollection<%s, %s>', $this->normalizeFieldType($typeOfIndexByField), $otherTypename);
                             }
@@ -124,7 +123,7 @@ class DoctrineMetadataParser implements ModelParserInterface
         }
     }
 
-    public function tryGetDoctrineClassMetadata(string $className): ?\Doctrine\Persistence\Mapping\ClassMetadata
+    protected function tryGetDoctrineClassMetadata(string $className): ?ClassMetadata
     {
         $manager = $this->registry->getManagerForClass($className);
 
@@ -137,10 +136,6 @@ class DoctrineMetadataParser implements ModelParserInterface
 
     protected function normalizeFieldType(string $type): ?string
     {
-        if (!isset($this->fieldMapping[$type])) {
-            return null;
-        }
-
-        return $this->fieldMapping[$type];
+        return $this->fieldMapping[$type] ?? null;
     }
 }
